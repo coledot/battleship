@@ -1,0 +1,2 @@
+class BattleshipAppController < ApplicationController
+end

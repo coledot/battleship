@@ -1,0 +1,10 @@
+<div id="<%= who %>_grid" class="game_grid">
+  <p class="grid_title"><%= who.capitalize %></p>
+  <% (0...10).each do |row_num| %>
+    <div id="row<%= "#{row_num}" %>" class="grid_row">
+    <% (0...10).each do |col_num| %>
+      <div id="row<%= "#{row_num}" %>_col<%= col_num %>" class="grid_cell"></div>
+    <% end %>
+    </div>
+  <% end %>
+</div>
