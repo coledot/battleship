@@ -12,10 +12,18 @@ class GameStateController < ApplicationController
 
   # /GET/:id
   def show
-    last_turn = GameState.where(player: params[:id], turn_num: GameState.maximum(:turn_num))
+    player_num = params[:id].to_i
+
+    last_turn = GameState.where(turn_num: GameState.maximum(:turn_num))
     if last_turn.nil?
       json_response(game_state: nil, message: "Game has not started yet!")
     else
+      last_turn.each do |turn|
+        if turn.player != player_num && turn.cell_state == 'ship'
+          # hide opponent's ship positions from the player
+          turn.cell_state = :empty
+        end
+      end
       json_response(game_state: last_turn, message: nil)
     end
   end

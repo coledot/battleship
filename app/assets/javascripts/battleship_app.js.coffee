@@ -16,7 +16,7 @@ CELL_STATES = ['empty', 'ship', 'miss', 'hit']
 
 @fillBoardState = (game_state)->
   for state in game_state
-    selector = playerGridSelector() + " #row" + state.y_pos + "_col" + state.x_pos
+    selector = gridSelector(state.player) + " #row" + state.y_pos + "_col" + state.x_pos
     $(selector).addClass(state.cell_state)
 
 @updateMessages = (message)->
@@ -34,7 +34,13 @@ CELL_STATES = ['empty', 'ship', 'miss', 'hit']
   if data.message != null
     updateMessages data.message
 
+@pollGameState = ->
+  $.ajax(type: 'GET', url: "game_state/" + document.playerNumber, success: @processStateResponse)
+
 @startGame = ->
-  response = $.ajax(type: 'GET', url: "game_state", success: @processStateResponse)
+  $.ajax(type: 'GET', url: "game_state", success: @processStateResponse)
+  # FIXME ideally we would be updated by the server when the game is ready instead of polling it,
+  #       but c'est la vie
+  setInterval(pollGameState, 1000)
 
 window.onload = @startGame
