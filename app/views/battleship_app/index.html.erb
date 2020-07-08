@@ -1,5 +1,7 @@
+<%= javascript_include_tag "application" %>
+
 <div class="game_container">
-  <%= render partial: 'game_grid', locals: { who: 'player' } %>
-  <%= render partial: 'game_grid', locals: { who: 'opponent' } %>
+  <%= render partial: 'game_grid', locals: { who: 'player_1' } %>
+  <%= render partial: 'game_grid', locals: { who: 'player_2' } %>
   <%= render partial: 'message_box' %>
 </div>

@@ -40,6 +40,18 @@ class GameStateController < ApplicationController
     GameState.where(player: player_num, turn_num: 0)
   end
 
+  def new_positions_valid?(new_positions, existing_positions)
+    new_positions.each do |new_pos|
+      if new_pos[0] > 9 || new_pos[1] > 9
+        # outside grid, try again
+        return false
+      end
+    end
+
+    # set intersection -- if empty, then no collisions
+    existing_positions & new_positions == []
+  end
+
   def generate_ships
     occupied_positions = []
     [5, 4, 3, 3, 2].each do |length|
@@ -56,8 +68,7 @@ class GameStateController < ApplicationController
           end
         end
 
-        # set intersection
-        if occupied_positions & newly_occupied_positions == []
+        if new_positions_valid? newly_occupied_positions, occupied_positions
           # no collisions, move on to next ship
           occupied_positions.push(*newly_occupied_positions)
           break

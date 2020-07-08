@@ -31,6 +31,23 @@
         height: 32px;
         border: 1px solid black;
       }
+
+      .empty {
+        background: white;
+      }
+
+      .ship {
+        background: grey;
+      }
+
+      .hit {
+        background: red;
+      }
+
+      .miss {
+        background: yellow;
+      }
+
     }
   }
 
