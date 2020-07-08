@@ -22,5 +22,5 @@ Usage (w/o Docker):
 
 - `bundle exec rails server`
 
-- Remaining steps are same as w/ Docker from step 2 onward
+- Remaining steps are same as w/ Docker from step 4 onward
 
