@@ -1,24 +1,11 @@
-# README
+# Battleship
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Battleship in Ruby/Rails and Coffeescript. If it looks janky, that's on purpose.
 
-Things you may want to cover:
+NOTE: To start a new game, you must restart the server. The database is cleared on restart as well.
 
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+Usage:
+    - `bundle exec rails server`
+    - First player should point their browser to localhost:3000, a ship layout will be assigned to them
+    - Repeat for second player
+    - ...and that's it for now :/
