@@ -19,12 +19,13 @@ CELL_STATES = ['empty', 'ship', 'miss', 'hit']
     selector = gridSelector(state.player) + " #row#{state.y_pos}_col#{state.x_pos}"
     $(selector).addClass(state.cell_state)
 
-@updateMessages = (message)->
+@updateMessages = (new_message)->
   msg_box = $('.message_box')
   messages = msg_box.children()
-  if messages.length > 4
+  return if messages.last().text() == new_message
+  if messages.length > 8
     messages.first().remove()
-  msg_box.append("<p>#{message}</p>")
+  msg_box.append("<p>#{new_message}</p>")
 
 @processStateResponse = (data, _, __)->
   if data.game_state != null

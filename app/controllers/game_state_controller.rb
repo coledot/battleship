@@ -14,11 +14,16 @@ class GameStateController < ApplicationController
   def show
     player_num = params[:id].to_i
 
-    last_turn = latest_game_state(player_num)
-    if last_turn.nil?
+    last_turn = redacted_game_state(player_num)
+    if !ready_to_play?
       json_response(game_state: nil, message: "Game has not started yet!")
     else
-      json_response(game_state: last_turn, message: nil)
+      if a_player_has_won?
+        message = "Player #{winning_player} has won!"
+      else
+        message = "It's player #{whose_turn}'s turn"
+      end
+      json_response(game_state: last_turn, message: message)
     end
   end
 
@@ -37,7 +42,7 @@ class GameStateController < ApplicationController
                             where(player: opponent_num, x_pos: x_pos, y_pos: y_pos).first
 
     if ["miss", "hit"].include?(target_cell.cell_state)
-      return json_response(game_state: latest_game_state(player_num), message: "You've already fired on this location!")
+      return json_response(game_state: redacted_game_state(player_num), message: "You've already fired on this location!")
     end
 
     new_state = target_cell.cell_state == 'empty' ? 'miss' : 'hit'
@@ -45,7 +50,7 @@ class GameStateController < ApplicationController
                   x_pos: x_pos, y_pos: y_pos, cell_state: new_state).save
 
     msg = "Fired on position (#{x_pos}, #{y_pos}); it was a #{new_state}"
-    return json_response(game_state: latest_game_state(player_num), message: msg)
+    return json_response(game_state: redacted_game_state(player_num), message: msg)
   end
 
   private
@@ -117,6 +122,10 @@ class GameStateController < ApplicationController
     occupied_positions
   end
 
+  def ready_to_play?
+    GameState.where(turn_num: 0).count == 200
+  end
+
   def whose_turn
     current_turn_number.even? ? 1 : 2
   end
@@ -125,8 +134,17 @@ class GameStateController < ApplicationController
     GameState.maximum(:turn_num).to_i
   end
 
-  def latest_game_state(player_num)
-    redact_game_state(player_num, GameState.select('*, max(turn_num)').group(:x_pos, :y_pos))
+  def latest_game_state
+    # return all rows with distinct (player, x_pos, y_pos) values, but having the highest turn_num value
+    GameState.find_by_sql("select * from game_states gs1 " +
+                          "inner join (select player, x_pos, y_pos, turn_num, max(turn_num) " +
+                                      "from game_states group by player, x_pos, y_pos) gs2 " +
+                          "on gs1.player = gs2.player and gs1.x_pos = gs2.x_pos and gs1.y_pos = gs2.y_pos " +
+                                                     "and gs1.turn_num = gs2.turn_num")
+  end
+
+  def redacted_game_state(player_num)
+    redact_game_state(player_num, latest_game_state)
   end
 
   def redact_game_state(player, game_state)
@@ -136,5 +154,19 @@ class GameStateController < ApplicationController
         cell.cell_state = :empty
       end
     end
+  end
+
+  def a_player_has_won?
+    [1,2].each do |player|
+      if GameState.where(id: latest_game_state.pluck(:id), player: player, cell_state: :ship).length == 0
+        return true
+      end
+    end
+
+    return false
+  end
+
+  def winning_player
+    GameState.where(id: latest_game_state.pluck(:id), cell_state: :ship).group(:player).first.player
   end
 end
