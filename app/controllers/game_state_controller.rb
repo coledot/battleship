@@ -14,23 +14,38 @@ class GameStateController < ApplicationController
   def show
     player_num = params[:id].to_i
 
-    last_turn = GameState.where(turn_num: GameState.maximum(:turn_num))
+    last_turn = latest_game_state(player_num)
     if last_turn.nil?
       json_response(game_state: nil, message: "Game has not started yet!")
     else
-      last_turn.each do |turn|
-        if turn.player != player_num && turn.cell_state == 'ship'
-          # hide opponent's ship positions from the player
-          turn.cell_state = :empty
-        end
-      end
       json_response(game_state: last_turn, message: nil)
     end
   end
 
   # /POST
   def create
-    # TODO
+    player_num = params[:player].to_i
+
+    if whose_turn != player_num
+      return json_response(game_state: nil, message: "It's not your turn, please wait")
+    end
+
+    opponent_num = player_num == 1 ? 2 : 1
+    x_pos, y_pos = params[:x_pos], params[:y_pos]
+
+    target_cell = GameState.select('cell_state, turn_num, max(turn_num)').
+                            where(player: opponent_num, x_pos: x_pos, y_pos: y_pos).first
+
+    if ["miss", "hit"].include?(target_cell.cell_state)
+      return json_response(game_state: latest_game_state(player_num), message: "You've already fired on this location!")
+    end
+
+    new_state = target_cell.cell_state == 'empty' ? 'miss' : 'hit'
+    GameState.new(player: opponent_num, turn_num: current_turn_number + 1,
+                  x_pos: x_pos, y_pos: y_pos, cell_state: new_state).save
+
+    msg = "Fired on position (#{x_pos}, #{y_pos}); it was a #{new_state}"
+    return json_response(game_state: latest_game_state(player_num), message: msg)
   end
 
   private
@@ -40,12 +55,26 @@ class GameStateController < ApplicationController
   end
 
   def new_game(player_num)
-    generate_ships.each do |occupied_cell|
-      state = GameState.new(player: player_num, turn_num: 0,
-                            x_pos: occupied_cell[0], y_pos: occupied_cell[1], cell_state: :ship)
-      state.save
-    end
+    ship_coords = generate_ship_coords
+    populate_cells_with_state(player_num, ship_coords, :ship)
+    empty_coords = all_coords - ship_coords
+    populate_cells_with_state(player_num, empty_coords, :empty)
     GameState.where(player: player_num, turn_num: 0)
+  end
+
+  def populate_cells_with_state(player_num, coords, cell_state)
+    coords.each do |coord|
+      GameState.new(player: player_num, turn_num: 0,
+                    x_pos: coord[0], y_pos: coord[1], cell_state: cell_state).save
+    end
+  end
+
+  def all_coords
+    (0...10).map do |x|
+      (0...10).map do |y|
+        [x,y]
+      end
+    end.flatten(1)
   end
 
   def new_positions_valid?(new_positions, existing_positions)
@@ -60,7 +89,7 @@ class GameStateController < ApplicationController
     existing_positions & new_positions == []
   end
 
-  def generate_ships
+  def generate_ship_coords
     occupied_positions = []
     [5, 4, 3, 3, 2].each do |length|
       loop do
@@ -86,5 +115,26 @@ class GameStateController < ApplicationController
     end
 
     occupied_positions
+  end
+
+  def whose_turn
+    current_turn_number.even? ? 1 : 2
+  end
+
+  def current_turn_number
+    GameState.maximum(:turn_num).to_i
+  end
+
+  def latest_game_state(player_num)
+    redact_game_state(player_num, GameState.select('*, max(turn_num)').group(:x_pos, :y_pos))
+  end
+
+  def redact_game_state(player, game_state)
+    game_state.each do |cell|
+      if cell.player != player && cell.cell_state == 'ship'
+        # hide opponent's ship positions from the player
+        cell.cell_state = :empty
+      end
+    end
   end
 end
