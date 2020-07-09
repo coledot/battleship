@@ -6,7 +6,7 @@ CELL_STATES = ['empty', 'ship', 'miss', 'hit']
    cell.addState(new_state)
 
 @gridSelector = (player)->
-  "#player_" + player + "_grid"
+  "#player_#{player}_grid"
 
 @playerGridSelector = ->
   gridSelector(document.playerNumber)
@@ -16,12 +16,15 @@ CELL_STATES = ['empty', 'ship', 'miss', 'hit']
 
 @fillBoardState = (game_state)->
   for state in game_state
-    selector = gridSelector(state.player) + " #row" + state.y_pos + "_col" + state.x_pos
+    selector = gridSelector(state.player) + " #row#{state.y_pos}_col#{state.x_pos}"
     $(selector).addClass(state.cell_state)
 
 @updateMessages = (message)->
-  # TODO rolling msg buffer
-  $('.message_box').append("<p>" + message + "</p>")
+  msg_box = $('.message_box')
+  messages = msg_box.children()
+  if messages.length > 4
+    messages.first().remove()
+  msg_box.append("<p>#{message}</p>")
 
 @processStateResponse = (data, _, __)->
   if data.game_state != null
@@ -35,12 +38,29 @@ CELL_STATES = ['empty', 'ship', 'miss', 'hit']
     updateMessages data.message
 
 @pollGameState = ->
-  $.ajax(type: 'GET', url: "game_state/" + document.playerNumber, success: @processStateResponse)
+  $.get("game_state/#{document.playerNumber}", @processStateResponse)
+
+@fireOnCell = ->
+  grid_id = $(@).parent().parent().attr('id')
+  if grid_id == "player_#{document.playerNumber}_grid"
+    updateMessages "You can't fire on your own fleet!"
+    return
+
+  cell_id = $(@).attr('id')
+  row_col_re = /row(\d+)_col(\d+)/
+  row_col_match = cell_id.match row_col_re
+  x_pos = row_col_match[2]
+  y_pos = row_col_match[1]
+
+  post_params = { player: document.playerNumber, x_pos: x_pos, y_pos: y_pos }
+  $.post("game_state", post_params, processStateResponse)
 
 @startGame = ->
-  $.ajax(type: 'GET', url: "game_state", success: @processStateResponse)
+  $.get("game_state", @processStateResponse)
   # FIXME ideally we would be updated by the server when the game is ready instead of polling it,
   #       but c'est la vie
   setInterval(pollGameState, 1000)
 
-window.onload = @startGame
+window.onload = ->
+  @startGame()
+  $(document).on("click", ".grid_cell", @fireOnCell)

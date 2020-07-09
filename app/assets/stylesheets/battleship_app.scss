@@ -2,6 +2,8 @@
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: https://sass-lang.com/
 
+$cell_size: 48px;
+
 .game_container {
   display: flex;
   flex: 1;
@@ -10,9 +12,9 @@
 
   .game_grid {
     display: flex;
-    //border: 4px dotted blue;
     flex-direction: column;
     margin: 64px;
+    padding: 0;
 
     .grid_title {
       font: 32pt bold;
@@ -24,11 +26,15 @@
       display:flex;
       flex: 1;
       flex-direction: row;
+      padding: 0;
+      justify-content: center;
   
       .grid_cell {
         flex: 1;
-        width: 32px;
-        height: 32px;
+        width: $cell_size;
+        max-width: $cell_size;
+        height: $cell_size;
+        max-height: $cell_size;
         border: 1px solid black;
       }
 
